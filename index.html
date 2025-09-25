@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>마이크 증폭기</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #1a202c;
+            color: #e2e8f0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 1rem;
+            background: #1a202c;
+            background: linear-gradient(135deg, #1a202c 0%, #2d3748 100%);
+        }
+        .control-group {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+        }
+        .control-group label {
+            flex-grow: 1;
+            white-space: nowrap;
+        }
+        .control-group input[type="range"] {
+            flex-grow: 2;
+            margin: 0 0.5rem;
+        }
+        .control-group button {
+            width: 2rem;
+            height: 2rem;
+            border-radius: 9999px;
+            background-color: #4a5568;
+            color: #e2e8f0;
+            font-weight: bold;
+            font-size: 1.25rem;
+            line-height: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition-colors: 0.2s;
+        }
+        .control-group button:hover:not([disabled]) {
+            background-color: #718096;
+        }
+        .control-group button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            color: white;
+            z-index: 10;
+        }
+        .card-container {
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(45, 55, 72, 0.6);
+            backdrop-filter: blur(10px);
+        }
+        /* 볼륨 슬라이더 디자인 */
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 1rem;
+            height: 1rem;
+            border-radius: 50%;
+            background: #6d28d9;
+            cursor: pointer;
+            box-shadow: 0 0 5px rgba(109, 40, 217, 0.8);
+            transition: background 0.2s, box-shadow 0.2s;
+        }
+        input[type="range"]::-webkit-slider-thumb:hover {
+            background: #8b5cf6;
+            box-shadow: 0 0 10px rgba(139, 92, 246, 1);
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-200 relative">
+
+<div class="max-w-md w-full p-6 sm:p-8 bg-gray-800 rounded-2xl shadow-xl border border-gray-700 text-center relative z-10 card-container">
+    <h1 class="text-3xl sm:text-4xl font-bold mb-2">마이크 증폭기</h1>
+    <p class="text-lg text-gray-400 mb-6">휴대폰을 마이크처럼 사용하고 목소리를 증폭하세요.</p>
+    
+    <!-- 메인 컨트롤 버튼 -->
+    <div class="mb-4">
+        <button id="startButton" class="w-full py-4 px-6 bg-purple-600 hover:bg-purple-700 transition-colors duration-200 rounded-xl text-lg font-semibold text-white shadow-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-50">
+            마이크 켜기
+        </button>
+        <button id="stopButton" class="w-full py-4 px-6 bg-red-600 hover:bg-red-700 transition-colors duration-200 rounded-xl text-lg font-semibold text-white shadow-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50 hidden">
+            마이크 끄기
+        </button>
+    </div>
+
+    <!-- 블루투스 연결 안내 버튼 -->
+    <button id="bluetoothButton" class="w-full py-3 px-6 bg-gray-700 hover:bg-gray-600 transition-colors duration-200 rounded-xl text-lg font-semibold text-white shadow-lg focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-opacity-50 mb-8">
+        블루투스 스피커 연결하기
+    </button>
+
+    <div id="volumeControl" class="mb-8 hidden">
+        <label for="gainSlider" class="block text-sm font-medium text-gray-400 mb-2">전체 볼륨 조절</label>
+        <input type="range" id="gainSlider" min="0" max="5" value="1" step="0.1" class="w-full accent-purple-500">
+    </div>
+
+    <!-- 음질 조절(EQ) 슬라이더 추가 -->
+    <div id="eqControl" class="mb-8 hidden">
+        <h2 class="text-xl font-bold mb-4">음질 조절 (EQ)</h2>
+        <div class="control-group">
+            <label for="lowGainSlider">저음 (Bass)</label>
+            <button class="minus-button">-</button>
+            <input type="range" id="lowGainSlider" min="-20" max="20" value="0" step="1" class="w-full accent-purple-500">
+            <button class="plus-button">+</button>
+        </div>
+        <div class="control-group">
+            <label for="midGainSlider">중음 (Mid)</label>
+            <button class="minus-button">-</button>
+            <input type="range" id="midGainSlider" min="-20" max="20" value="0" step="1" class="w-full accent-purple-500">
+            <button class="plus-button">+</button>
+        </div>
+        <div class="control-group">
+            <label for="highGainSlider">고음 (Treble)</label>
+            <button class="minus-button">-</button>
+            <input type="range" id="highGainSlider" min="-20" max="20" value="0" step="1" class="w-full accent-purple-500">
+            <button class="plus-button">+</button>
+        </div>
+    </div>
+
+    <!-- 효과 조절 기능 추가 -->
+    <div id="effectControl" class="mb-8 hidden">
+        <h2 class="text-xl font-bold mb-4">효과 조절</h2>
+        <div class="control-group">
+            <label for="delaySlider">에코/리버브</label>
+            <button class="minus-button">-</button>
+            <input type="range" id="delaySlider" min="0" max="0.5" value="0" step="0.01" class="w-full accent-purple-500">
+            <button class="plus-button">+</button>
+        </div>
+        
+        <div class="flex items-center justify-between mb-4">
+            <p class="text-sm font-medium text-gray-400">주변 소음 제거: 활성화됨</p>
+        </div>
+    </div>
+
+    <!-- 녹음 기능 추가 -->
+    <div id="recordingControl" class="mb-8 hidden">
+        <button id="recordStartButton" class="w-full py-3 px-4 bg-lime-600 hover:bg-lime-700 transition-colors duration-200 rounded-xl text-lg font-semibold text-white shadow-lg focus:outline-none focus:ring-2 focus:ring-lime-500 focus:ring-opacity-50">
+            녹음 시작
+        </button>
+        <button id="recordStopButton" class="w-full py-3 px-4 bg-red-600 hover:bg-red-700 transition-colors duration-200 rounded-xl text-lg font-semibold text-white shadow-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50 hidden mt-2">
+            녹음 중지
+        </button>
+        <a id="downloadButton" class="hidden w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 transition-colors duration-200 rounded-xl text-lg font-semibold text-white shadow-lg focus:outline-none focus:ring-2 focus-ring-blue-500 focus:ring-opacity-50 mt-2 block" download="voice_recording.webm">
+            녹음 파일 다운로드
+        </a>
+    </div>
+
+    <div id="messageBox" class="p-4 rounded-xl text-sm font-medium transition-opacity duration-300 hidden"></div>
+
+    <div class="mt-8 text-sm text-gray-500">
+        <p>경고: 스피커와 마이크가 너무 가까우면 불쾌한 소리(하울링)가 발생할 수 있습니다.</p>
+    </div>
+</div>
+
+<div id="restartOverlay" class="overlay hidden">
+    <div class="p-4 rounded-xl bg-gray-800 text-white shadow-xl flex flex-col items-center">
+        <svg class="animate-spin -ml-1 mr-3 h-8 w-8 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+        <p class="mt-4 text-lg font-semibold">마이크 재시작 중...</p>
+        <p class="text-sm text-gray-400">잠시만 기다려주세요.</p>
+    </div>
+</div>
+
+<script>
+    // 전역 변수 설정
+    let audioContext;
+    let microphone;
+    let gainNode;
+    let stream;
+    let isMicOn = false;
+    let lowFilter, midFilter, highFilter;
+    let delayNode, feedbackGainNode;
+    let mediaRecorder;
+    let recordedChunks = [];
+    let mediaStreamDestination;
+    
+    // UI 요소 가져오기
+    const startButton = document.getElementById('startButton');
+    const stopButton = document.getElementById('stopButton');
+    const bluetoothButton = document.getElementById('bluetoothButton');
+    const gainSlider = document.getElementById('gainSlider');
+    const volumeControl = document.getElementById('volumeControl');
+    const eqControl = document.getElementById('eqControl');
+    const lowGainSlider = document.getElementById('lowGainSlider');
+    const midGainSlider = document.getElementById('midGainSlider');
+    const highGainSlider = document.getElementById('highGainSlider');
+    const effectControl = document.getElementById('effectControl');
+    const delaySlider = document.getElementById('delaySlider');
+    const recordingControl = document.getElementById('recordingControl');
+    const recordStartButton = document.getElementById('recordStartButton');
+    const recordStopButton = document.getElementById('recordStopButton');
+    const downloadButton = document.getElementById('downloadButton');
+    const messageBox = document.getElementById('messageBox');
+    const restartOverlay = document.getElementById('restartOverlay');
+
+    // 메시지 박스 표시 함수
+    function showMessage(text, type = 'info') {
+        messageBox.textContent = text;
+        messageBox.classList.remove('hidden', 'bg-red-700', 'bg-green-700', 'bg-yellow-700', 'bg-gray-700');
+        if (type === 'error') {
+            messageBox.classList.add('bg-red-700');
+        } else if (type === 'success') {
+            messageBox.classList.add('bg-green-700');
+        } else {
+            messageBox.classList.add('bg-gray-700');
+        }
+        setTimeout(() => messageBox.classList.add('hidden'), 5000);
+    }
+
+    // 마이크 시작 함수
+    async function startMic() {
+        if (isMicOn) return;
+        startButton.disabled = true;
+        restartOverlay.classList.remove('hidden');
+
+        try {
+            audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            await audioContext.resume();
+
+            stream = await navigator.mediaDevices.getUserMedia({ audio: {
+                echoCancellation: false,
+                noiseSuppression: true,
+                autoGainControl: false,
+            }});
+
+            microphone = audioContext.createMediaStreamSource(stream);
+            mediaStreamDestination = audioContext.createMediaStreamDestination();
+
+            gainNode = audioContext.createGain();
+            gainNode.gain.value = gainSlider.value;
+
+            lowFilter = audioContext.createBiquadFilter();
+            lowFilter.type = 'lowshelf';
+            lowFilter.frequency.value = 320;
+            lowFilter.gain.value = lowGainSlider.value;
+
+            midFilter = audioContext.createBiquadFilter();
+            midFilter.type = 'peaking';
+            midFilter.frequency.value = 1000;
+            midFilter.gain.value = midGainSlider.value;
+
+            highFilter = audioContext.createBiquadFilter();
+            highFilter.type = 'highshelf';
+            highFilter.frequency.value = 3200;
+            highFilter.gain.value = highGainSlider.value;
+            
+            delayNode = audioContext.createDelay(1.0);
+            delayNode.delayTime.value = delaySlider.value;
+
+            feedbackGainNode = audioContext.createGain();
+            feedbackGainNode.gain.value = 0.5;
+            
+            // 노드 연결: 마이크 -> EQ 필터들 -> 게인 노드
+            microphone.connect(lowFilter);
+            lowFilter.connect(midFilter);
+            midFilter.connect(highFilter);
+            highFilter.connect(gainNode);
+
+            gainNode.connect(mediaStreamDestination);
+            
+            gainNode.connect(delayNode);
+            delayNode.connect(feedbackGainNode);
+            feedbackGainNode.connect(delayNode);
+            
+            feedbackGainNode.connect(audioContext.destination);
+            feedbackGainNode.connect(mediaStreamDestination);
+
+            gainNode.connect(audioContext.destination);
+            
+            isMicOn = true;
+            startButton.classList.add('hidden');
+            stopButton.classList.remove('hidden');
+
+            volumeControl.classList.remove('hidden');
+            eqControl.classList.remove('hidden');
+            effectControl.classList.remove('hidden');
+            recordingControl.classList.remove('hidden');
+            
+            restartOverlay.classList.add('hidden');
+            
+            showMessage("마이크가 켜졌습니다. 볼륨과 음질을 조절하세요.", 'success');
+        } catch (error) {
+            console.error('마이크 접근 오류:', error);
+            startButton.disabled = false;
+            restartOverlay.classList.add('hidden');
+            showMessage("마이크를 켤 수 없습니다. 권한을 확인해 주세요.", 'error');
+            isMicOn = false;
+            startButton.classList.remove('hidden');
+            stopButton.classList.add('hidden');
+            volumeControl.classList.add('hidden');
+            eqControl.classList.add('hidden');
+            effectControl.classList.add('hidden');
+            recordingControl.classList.add('hidden');
+        }
+    }
+
+    // 마이크 중지 함수
+    function stopMic() {
+        if (!isMicOn) return;
+
+        if (stream) {
+            stream.getTracks().forEach(track => track.stop());
+            stream = null;
+        }
+        if (audioContext) {
+            audioContext.close();
+            audioContext = null;
+        }
+        
+        isMicOn = false;
+        startButton.classList.remove('hidden');
+        stopButton.classList.add('hidden');
+        
+        volumeControl.classList.add('hidden');
+        eqControl.classList.add('hidden');
+        effectControl.classList.add('hidden');
+        recordingControl.classList.add('hidden');
+        
+        showMessage("마이크가 꺼졌습니다.", 'info');
+    }
+
+    // 녹음 시작 함수
+    function startRecording() {
+        if (!isMicOn) {
+            showMessage("마이크를 먼저 켜주세요!", 'error');
+            return;
+        }
+        
+        recordedChunks = [];
+        
+        mediaRecorder = new MediaRecorder(mediaStreamDestination.stream);
+        
+        mediaRecorder.ondataavailable = event => {
+            if (event.data.size > 0) {
+                recordedChunks.push(event.data);
+            }
+        };
+        
+        mediaRecorder.onstop = () => {
+            const blob = new Blob(recordedChunks, { 'type' : 'audio/webm' });
+            const audioURL = URL.createObjectURL(blob);
+            downloadButton.href = audioURL;
+            downloadButton.classList.remove('hidden');
+        };
+        
+        mediaRecorder.start();
+        recordStartButton.classList.add('hidden');
+        recordStopButton.classList.remove('hidden');
+        showMessage("녹음을 시작합니다.", 'success');
+    }
+
+    // 녹음 중지 함수
+    function stopRecording() {
+        if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+            mediaRecorder.stop();
+            recordStartButton.classList.remove('hidden');
+            recordStopButton.classList.add('hidden');
+            showMessage("녹음이 완료되었습니다. 파일을 다운로드하세요.", 'success');
+        }
+    }
+    
+    // 모든 슬라이더와 +/- 버튼에 대한 이벤트 리스너 추가
+    document.querySelectorAll('.control-group').forEach(group => {
+        const slider = group.querySelector('input[type="range"]');
+        const minusBtn = group.querySelector('.minus-button');
+        const plusBtn = group.querySelector('.plus-button');
+        
+        if (slider && minusBtn && plusBtn) {
+            minusBtn.addEventListener('click', () => {
+                const step = parseFloat(slider.step);
+                slider.value = parseFloat(slider.value) - step;
+                slider.dispatchEvent(new Event('input'));
+            });
+
+            plusBtn.addEventListener('click', () => {
+                const step = parseFloat(slider.step);
+                slider.value = parseFloat(slider.value) + step;
+                slider.dispatchEvent(new Event('input'));
+            });
+        }
+    });
+
+    // 슬라이더 이벤트 리스너
+    gainSlider.addEventListener('input', () => {
+        if (gainNode) {
+            gainNode.gain.value = gainSlider.value;
+        }
+    });
+    
+    lowGainSlider.addEventListener('input', () => {
+        if (lowFilter) {
+            lowFilter.gain.value = lowGainSlider.value;
+        }
+    });
+
+    midGainSlider.addEventListener('input', () => {
+        if (midFilter) {
+            midFilter.gain.value = midGainSlider.value;
+        }
+    });
+    
+    highGainSlider.addEventListener('input', () => {
+        if (highFilter) {
+            highFilter.gain.value = highGainSlider.value;
+        }
+    });
+
+    delaySlider.addEventListener('input', () => {
+        if (delayNode) {
+            delayNode.delayTime.value = delaySlider.value;
+            feedbackGainNode.gain.value = delaySlider.value * 0.5;
+        }
+    });
+
+    bluetoothButton.addEventListener('click', () => {
+        showMessage("블루투스 스피커를 연결하려면 기기의 설정 메뉴로 이동하세요. 연결이 완료되면 앱으로 돌아와 마이크를 켜주세요.", 'info');
+    });
+
+    startButton.addEventListener('click', startMic);
+    stopButton.addEventListener('click', stopMic);
+    recordStartButton.addEventListener('click', startRecording);
+    recordStopButton.addEventListener('click', stopRecording);
+    window.addEventListener('beforeunload', () => stopMic());
+</script>
+
+</body>
+</html>
